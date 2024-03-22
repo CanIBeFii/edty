@@ -7,20 +7,29 @@ fn to_ctrl_byte(c: char) -> u8 {
 	byte & 0b0001_1111
 }
 
+fn close_program(error: std::io::Error) {
+	panic!(error);
+}
+
 fn main() {
 	let _stdout =stdout().into_raw_mode().unwrap();
 
     for b in io::stdin().bytes() {
-		let b = b.unwrap();
-		let letter = b as char;
+		match b {
+			Ok(b) => {
+				let letter = b as char;
 
-		if letter.is_control() {
-			println!("{:#b} \r", b);
-		} else {
-			println!("{} ({:#b})\r", letter, b);
-		}
-		if b == to_ctrl_byte('q') {
-			break;
+				if letter.is_control() {
+					println!("{:#b} \r", b);
+				} else {
+					println!("{} ({:#b})\r", letter, b);
+				}
+
+				if b == to_ctrl_byte('q') {
+					break;
+				}
+			}
+			Err(error) => close_program(error)
 		}
 	}
 }
