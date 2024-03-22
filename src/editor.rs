@@ -1,48 +1,84 @@
-use std::io::{self, stdout};
+use crate::Terminal;
 use termion::event::Key;
-use termion::input::TermRead;
-use termion::raw::IntoRawMode;
+
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub struct Editor {
 	quit: bool,
+	terminal: Terminal,
 }
 
 impl Editor {
 	pub fn default() -> Self {
-		Self { quit: false }
+		Self {
+			quit: false,
+			terminal: Terminal::new().expect("Failed to initialize terminal :0"),
+		}
 	}
 
 	pub fn run(&mut self) {
-		let _stdout =stdout().into_raw_mode().unwrap();
-
 		loop {
-			if let Err(error) = self.process_keypress() {
+			if let Err(error) = self.refresh_screen() {
 				close_program(&error);
 			}
 			if self.quit {
 				break;
 			}
+			if let Err(error) = self.process_keypress() {
+				close_program(&error);
+			}
 		}
 	}
 
+	fn refresh_screen(&self) -> Result<(), std::io::Error> {
+		Terminal::hide_cursor();
+		Terminal::cursor_position(0, 0);
+		if self.quit {
+			Terminal::clear_screen();
+			println!("Bye bye >:3\r");
+		} else {
+			self.draw_rows();
+			Terminal::cursor_position(0, 0);
+		}
+		Terminal::show_cursor();
+		Terminal::flush()
+	}
+
 	fn process_keypress(&mut self) -> Result<(), std::io::Error> {
-		let pressed_key = read_key()?;
+		let pressed_key = Terminal::read_key()?;
 		match pressed_key {
 			Key::Ctrl('q') => self.quit = true,
 			_ => (),
 		}
 		Ok(())
 	}
-}
 
-fn read_key() -> Result<Key, std::io::Error> {
-	loop {
-		if let Some(key) = io::stdin().lock().keys().next() {
-			return key
+	fn draw_welcome_message(&self) {
+		let mut welcome_message = format!("Eddy editor -- version {}\r", VERSION);
+		let width = self.terminal.size().width as usize;
+		let len = welcome_message.len();
+		let padding = width.saturating_sub(len) / 2;
+		let spaces = " ".repeat(padding.saturating_sub(1));
+		welcome_message = format!("~{}{}", spaces, welcome_message);
+		welcome_message.truncate(width);
+		println!("{}\r", welcome_message);
+	}
+
+	fn draw_rows(&self) {
+		let height = self.terminal.size().height;
+
+		for row in 0..height - 1 {
+			Terminal::clear_current_line();
+			if row == height / 2 {
+				self.draw_welcome_message();
+			} else {
+				println!("~\r");
+			}
 		}
 	}
 }
 
 fn close_program(error: &std::io::Error) {
+	Terminal::clear_screen();
 	panic!("{}", error);
 }
