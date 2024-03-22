@@ -14,11 +14,7 @@ fn main() {
 		match key {
 			Ok(key) => match key {
 				Key::Char(c) => {
-					if c.is_control() {
-						println!("{:#b} \r", c as u8);
-					} else {
-						println!("{} ({:?})\r", c, c as u8);
-					}
+					println!("{} ({:?})\r", c, c as u8);
 				}
 				Key::Ctrl('q') => break,
 				_ => println!("{:?}\r", key),
