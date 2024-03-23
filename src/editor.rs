@@ -2,10 +2,12 @@ use crate::Document;
 use crate::Row;
 use crate::Terminal;
 use std::env;
+use std::os::linux::raw::stat;
 use termion::color;
 use termion::event::Key;
 
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
+const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Default)]
@@ -215,9 +217,23 @@ impl Editor {
 	}
 
 	fn draw_status_bar(&self) {
-		let spaces = " ".repeat(self.terminal.size().width as usize);
+		let mut status;
+
+		let width = self.terminal.size().width as usize;
+		let mut file_name = "[No Name]".to_string();
+		if let Some(name) = &self.document.file_name {
+			file_name = name.clone();
+			file_name.truncate(20);
+		}
+		status = format!("{} - {} lines", file_name, self.document.len());
+		if width > status.len() {
+			status.push_str(&" ".repeat(width - status.len()));
+		}
+		status.truncate(width);
 		Terminal::set_bg_color(STATUS_BG_COLOR);
-		println!("{}\r", spaces);
+		Terminal::set_fg_color(STATUS_FG_COLOR);
+		println!("{}\r", status);
+		Terminal::reset_fg_color();
 		Terminal::reset_bg_color();
 	}
 

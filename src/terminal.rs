@@ -72,6 +72,14 @@ impl Terminal {
 		print!("{}", color::Bg(color::Reset));
 	}
 
+	pub fn set_fg_color(color: color::Rgb) {
+		print!("{}", color::Fg(color));
+	}
+
+	pub fn reset_fg_color() {
+		print!("{}", color::Fg(color::Reset));
+	}
+
 	pub fn read_key() -> Result<Key, std::io::Error> {
 		loop {
 			if let Some(key) = io::stdin().lock().keys().next() {
