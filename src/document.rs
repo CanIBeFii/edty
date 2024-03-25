@@ -74,8 +74,5 @@ impl Document {
 			let row = self.rows.get_mut(at.y).unwrap();
 			row.delete(at.x);
 		}
-
-		let row = self.rows.get_mut(at.y).unwrap();
-		row.delete(at.x);
 	}
 }
