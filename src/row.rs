@@ -37,6 +37,10 @@ impl Row {
 		result
 	}
 
+	pub fn as_bytes(&self) -> &[u8] {
+		self.string.as_bytes()
+	} 
+
 	pub fn len(&self) -> usize {
 		self.len
 	}
@@ -86,4 +90,6 @@ impl Row {
 		}
 		self.update_len();
 	}
+
+	
 }
