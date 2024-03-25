@@ -10,6 +10,7 @@ use termion::event::Key;
 const STATUS_BG_COLOR: color::Rgb = color::Rgb(239, 239, 239);
 const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const QUIT_TIMES: u8 = 1;
 
 #[derive(Default)]
 pub struct Position {
@@ -38,6 +39,7 @@ pub struct Editor {
 	offset: Position,
 	document: Document,
 	status_message: StatusMessage,
+	quit_times: u8,
 }
 
 impl Editor {
@@ -63,6 +65,7 @@ impl Editor {
 			offset: Position::default(),
 			document,
 			status_message: StatusMessage::from(initial_status),
+			quit_times: QUIT_TIMES,
 		}
 	}
 
@@ -119,7 +122,16 @@ impl Editor {
 	fn process_keypress(&mut self) -> Result<(), std::io::Error> {
 		let pressed_key = Terminal::read_key()?;
 		match pressed_key {
-			Key::Ctrl('q') => self.quit = true,
+			Key::Ctrl('q') => {
+				if self.quit_times > 0 && self.document.is_dirty() {
+					self.status_message = StatusMessage::from(
+						"WARNING! File has unsaved changes, Press Ctrl-Q again to quit.".to_string()
+					);
+					self.quit_times -= 1;
+					return Ok(());
+				}
+				self.quit = true
+			},
 			Key::Ctrl('s') => self.save(),
 			Key::Char(c) => {
 				self.document.insert(&self.cursor_position, c);
@@ -143,6 +155,10 @@ impl Editor {
 			_ => (),
 		}
 		self.scroll();
+		if self.quit_times < QUIT_TIMES {
+			self.quit_times = QUIT_TIMES;
+			self.status_message = StatusMessage::from(String::new());
+		}
 		Ok(())
 	}
 
