@@ -1,7 +1,7 @@
 use std::cmp;
 use unicode_segmentation::UnicodeSegmentation;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Row {
 	string: String,
 	len: usize,
@@ -38,15 +38,15 @@ impl Row {
 	}
 
 	pub fn as_bytes(&self) -> &[u8] {
-		self.string.as_bytes()
+		return self.string.as_bytes()
 	} 
 
 	pub fn len(&self) -> usize {
-		self.len
+		return self.len
 	}
 
 	pub fn is_empty(&self) -> bool {
-		self.len == 0
+		return self.len == 0
 	}
 
 	fn update_len(&mut self) {
@@ -71,23 +71,23 @@ impl Row {
 		self.update_len();
 	}
 
+	#[must_use]
 	pub fn split(&mut self, at: usize) -> Self {
 		let beginning: String = self.string[..].graphemes(true).take(at).collect();
 		let remainder: String = self.string[..].graphemes(true).skip(at).collect();
 		self.string = beginning;
 		self.update_len();
-		Self::from(&remainder[..])
+		return Self::from(&remainder[..])
 	}
 
 	pub fn delete(&mut self, at: usize) {
 		if at >= self.len() {
 			return ;
-		} else {
-			let mut result: String = self.string[..].graphemes(true).take(at).collect();
-			let remainder: String = self.string[..].graphemes(true).skip(at + 1).collect();
-			result.push_str(&remainder);
-			self.string = result;
 		}
+		let mut result: String = self.string[..].graphemes(true).take(at).collect();
+		let remainder: String = self.string[..].graphemes(true).skip(at + 1).collect();
+		result.push_str(&remainder);
+		self.string = result;
 		self.update_len();
 	}
 

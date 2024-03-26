@@ -3,7 +3,7 @@ use crate::Row;
 use std::fs;
 use std::io::{Error, Write};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Document {
 	rows: Vec<Row>,
 	pub file_name: Option<String>,

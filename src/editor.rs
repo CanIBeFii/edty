@@ -12,12 +12,13 @@ const STATUS_FG_COLOR: color::Rgb = color::Rgb(63, 63, 63);
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const QUIT_TIMES: u8 = 1;
 
-#[derive(Default)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Position {
 	pub x: usize,
 	pub y: usize,
 }
 
+#[derive(Debug)]
 struct StatusMessage {
 	text: String,
 	time: Instant,
@@ -51,14 +52,14 @@ impl Editor {
 			if let Ok(doc) =  Document::open(file_name) {
 				doc
 			} else {
-				initial_status = format!("ERR: Could not open file: {}", file_name);
+				initial_status = format!("ERR: Could not open file: {file_name}");
 				Document::default()
 			}
 		} else {
 			Document::default()
 		};
 
-		Self {
+		return Self {
 			quit: false,
 			terminal: Terminal::new().expect("Failed to initialize terminal :0"),
 			cursor_position: Position::default(),
@@ -99,7 +100,7 @@ impl Editor {
 			});
 		}
 		Terminal::show_cursor();
-		Terminal::flush()
+		return Terminal::flush()
 	}
 
 	fn save(&mut self) {
@@ -130,7 +131,7 @@ impl Editor {
 					self.quit_times -= 1;
 					return Ok(());
 				}
-				self.quit = true
+				self.quit = true;
 			},
 			Key::Ctrl('s') => self.save(),
 			Key::Char(c) => {
@@ -172,12 +173,16 @@ impl Editor {
 			offset.y = y;
 		} else if y >= offset.y.saturating_add(height) {
 			offset.y = y.saturating_sub(height).saturating_add(1);
+		} else {
+			// We don't care if y < offset.y + height
 		}
 
 		if x < offset.x {
 			offset.x = x;
 		} else if x >= offset.x.saturating_add(width) {
 			offset.x = x.saturating_sub(width).saturating_add(1);
+		} else {
+			// We don't care if x < offset.x + width
 		}
 	}
 
@@ -209,6 +214,8 @@ impl Editor {
 					} else {
 						x = 0;
 					}
+				} else {
+					// We only care if x > 0 or y > 0
 				}
 			},
 			Key::Right => {
@@ -217,18 +224,20 @@ impl Editor {
 				} else if y < height {
 					y += 1;
 					x = 0;
+				} else {
+					// We only care if x < width or y > height
 				}
 			}
 			Key::PageUp => {
 				y = if y > terminal_height {
-					y - terminal_height
+					y.saturating_sub(terminal_height)
 				} else {
 					0
 				}
 			},
 			Key::PageDown => {
 				y = if y.saturating_add(terminal_height) < height {
-					y + terminal_height
+					y.saturating_add(terminal_height)
 				} else {
 					height
 				}
@@ -251,14 +260,14 @@ impl Editor {
 	}
 
 	fn draw_welcome_message(&self) {
-		let mut welcome_message = format!("Eddy editor -- version {}\r", VERSION);
+		let mut welcome_message = format!("Eddy editor -- version {VERSION}\r");
 		let width = self.terminal.size().width as usize;
 		let len = welcome_message.len();
 		let padding = width.saturating_sub(len) / 2;
 		let spaces = " ".repeat(padding.saturating_sub(1));
-		welcome_message = format!("~{}{}", spaces, welcome_message);
+		welcome_message = format!("~{spaces}{welcome_message}");
 		welcome_message.truncate(width);
-		println!("{}\r", welcome_message);
+		println!("{welcome_message}\r");
 	}
 
 	pub fn draw_row(&self, row: &Row) {
@@ -266,7 +275,7 @@ impl Editor {
 		let start = self.offset.x;
 		let end = self.offset.x + width;
 		let row = row.render(start, end);
-		println!("{}\r", row)
+		println!("{row}\r");
 	}
 
 	fn draw_rows(&self) {
@@ -312,11 +321,11 @@ impl Editor {
 		if width > len {
 			status.push_str(&" ".repeat(width - status.len()));
 		}
-		status = format!("{}{}", status, line_indicator);
+		status = format!("{status}{line_indicator}");
 		status.truncate(width);
 		Terminal::set_bg_color(STATUS_BG_COLOR);
 		Terminal::set_fg_color(STATUS_FG_COLOR);
-		println!("{}\r", status);
+		println!("{status}\r");
 		Terminal::reset_fg_color();
 		Terminal::reset_bg_color();
 	}
@@ -324,17 +333,17 @@ impl Editor {
 	fn draw_message_bar(&self) {
 		Terminal::clear_current_line();
 		let message = &self.status_message;
-		if Instant::now() - message.time < Duration::new(5, 0) {
+		if message.time.elapsed() < Duration::new(5, 0) {
 			let mut text = message.text.clone();
 			text.truncate(self.terminal.size().width as usize);
-			print!("{}", text);
+			print!("{text}");
 		}
 	}
 
 	fn prompt(&mut self, prompt: &str) -> Result<Option<String>, std::io::Error> {
 		let mut result = String::new();
 		loop {
-			self.status_message = StatusMessage::from(format!("{}{}", prompt, result));
+			self.status_message = StatusMessage::from(format!("{prompt}{result}"));
 			self.refresh_screen()?;
 			match Terminal::read_key()? {
 				Key::Backspace => {
